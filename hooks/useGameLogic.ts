@@ -108,23 +108,33 @@ export const useGameLogic = () => {
       });
 
       const nextStorySegment: StorySegment = { id: Date.now() + 1, text: response.storyText };
-      if (response.characterUpdate.statusEffect) {
-        nextStorySegment.text += `\n\n*${response.characterUpdate.statusEffect}*`;
+      const { statusEffect } = response.characterUpdate;
+      // The model might return the literal string "null", so we check for it.
+      if (statusEffect && statusEffect.toLowerCase() !== 'null') {
+        nextStorySegment.text += `\n\n*${statusEffect}*`;
       }
       setStoryLog(prev => [...prev, nextStorySegment]);
 
       if (response.isGameOver || finalStability <= 0) {
         setGameState('gameover');
         setCurrentChoices([]);
-        const gameOverText = response.isGameOver ? response.gameOverText : "Your mind shatters. The Illusion collapses around you into a vortex of screaming madness. You are lost.";
+        
+        const isStabilityGameOver = finalStability <= 0 && !response.isGameOver;
+        const gameOverText = isStabilityGameOver 
+            ? "Your mind shatters. The Illusion collapses around you into a vortex of screaming madness. You are lost." 
+            : response.gameOverText;
+        
         setStoryLog(prev => [...prev, { id: Date.now() + 2, text: `\n--- ${gameOverText} ---`}]);
         
-        if (response.finalPortraitPrompt) {
+        // If the model didn't provide a prompt (e.g., on stability death), create a default one
+        // that is less likely to be rejected by image safety filters.
+        const finalPrompt = response.finalPortraitPrompt || (isStabilityGameOver ? "The character's eyes are wide and staring blankly, reflecting an inner world that has crumbled. Their expression is empty, disconnected from the chaotic reality now visible around them." : null);
+
+        if (finalPrompt) {
             try {
-                // Keep the original portrait, but generate a new, final one based on it.
                 const originalPortraitBase64 = character.portrait.split(',')[1];
                 if (originalPortraitBase64) {
-                    const editedImageUrl = await editImageFromPrompt(originalPortraitBase64, response.finalPortraitPrompt);
+                    const editedImageUrl = await editImageFromPrompt(originalPortraitBase64, finalPrompt);
                     setFinalImage(editedImageUrl);
                 }
             } catch (err) {

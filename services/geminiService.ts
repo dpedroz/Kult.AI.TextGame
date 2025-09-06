@@ -160,11 +160,13 @@ export async function editImageFromPrompt(base64ImageData: string, prompt: strin
         },
     });
 
-    for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-            const base64ImageBytes: string = part.inlineData.data;
-            // Edited images are often returned as PNGs
-            return `data:image/png;base64,${base64ImageBytes}`;
+    if (response.candidates && response.candidates.length > 0) {
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+                const base64ImageBytes: string = part.inlineData.data;
+                // Edited images are often returned as PNGs
+                return `data:image/png;base64,${base64ImageBytes}`;
+            }
         }
     }
 

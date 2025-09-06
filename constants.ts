@@ -22,6 +22,8 @@ ${yearInstruction}
 
 The character's background and nationality are independent of the game's language (${options.language}). For instance, the game could be in Polish but the character an American tourist. However, there is a roughly 20% chance that the character is a native of a country where the selected language is spoken. Default to diverse, international characters unless you roll that 20% chance.
 
+The character's name MUST be culturally and ethnically appropriate for the game's final 'location'. For example, a game set in Tokyo should feature a Japanese name. Only generate a non-native name if the character's 'background' explicitly defines them as an expatriate, immigrant, or tourist.
+
 The character should be a "Sleeper," unaware of the true nature of reality but feeling a deep sense of wrongness in their life.
 
 Crucially, the character's advantages, disadvantages, and starting inventory MUST be thematically, culturally, and technologically appropriate for the specified time period and location. For example, a character in 1985 Warsaw would have very different items and concerns than one in 2024 Tokyo.
@@ -37,7 +39,7 @@ Format the output as a single JSON object with the following keys:
 - advantages: Array<{ text: string, icon: string }>. The 'icon' should be a single, simple, lowercase keyword (e.g., 'book', 'strength', 'intuition', 'fear', 'key').
 - disadvantages: Array<{ text: string, icon: string }>. The 'icon' should be a single, simple, lowercase keyword.
 - inventory: Array<{ text: string, icon: string }>. The 'icon' should be a single, simple, lowercase keyword.
-- portraitPrompt: A detailed, atmospheric, and artistic prompt for an image generator to create a photorealistic, gritty, noir-style portrait of the character. The prompt must be safe for work and avoid any potentially sensitive or violent terms.
+- portraitPrompt: A detailed, atmospheric, and artistic prompt for an image generator to create a photorealistic, gritty, noir-style portrait of the character. The character MUST be depicted as an adult, at least 18 years old, even if the character's age is younger. The prompt must be safe for work and avoid any potentially sensitive or violent terms.
 - location: The final string for the game's location.
 - year: The final string for the game's year.
 `;
@@ -126,7 +128,7 @@ export const GAME_STATE_SCHEMA = {
     },
     finalPortraitPrompt: {
         type: Type.STRING,
-        description: "If isGameOver is true, provide a detailed, atmospheric, and artistic prompt for an image generator to modify the existing portrait to reflect the character's final state and surroundings. The prompt must be safe for work and avoid potentially sensitive or violent terms. E.g., 'Make the man's eyes look hollow and add rain dripping down his face.' Null otherwise.",
+        description: "If isGameOver is true, provide a detailed prompt describing the modifications to the character's portrait based on their final state and surroundings. This should be an instruction for an image editor. For example: 'Make the man's eyes hollow and haunted, add deep shadows under them, and show rain dripping from his disheveled hair.' The prompt must be safe for work, focusing on atmospheric and psychological changes (e.g., 'haunted eyes', 'gaunt expression') rather than graphic or violent descriptions. Null if no visual change is warranted.",
     },
   },
   required: ["storyText", "choices", "characterUpdate", "isGameOver", "gameOverText", "finalPortraitPrompt"],
