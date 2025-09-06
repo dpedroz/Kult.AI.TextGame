@@ -6,7 +6,7 @@ import GameScreen from './components/GameScreen';
 import LoadingIndicator from './components/LoadingIndicator';
 
 const App: React.FC = () => {
-  const { gameState, character, storyLog, currentChoices, error, startGame, makeChoice } = useGameLogic();
+  const { gameState, character, storyLog, currentChoices, error, startGame, makeChoice, isRetrying } = useGameLogic();
 
   const renderContent = () => {
     if (gameState === 'error') {
@@ -32,7 +32,11 @@ const App: React.FC = () => {
         return (
             <div className="flex flex-col items-center justify-center h-screen text-center">
                 <LoadingIndicator />
-                <p className="text-lg font-serif mt-4 animate-pulse">Awakening from the Lie...</p>
+                <p className="text-lg font-serif mt-4 animate-pulse">
+                  {isRetrying
+                    ? 'The Oracle is hesitating... Re-establishing the connection.'
+                    : 'Awakening from the Lie...'}
+                </p>
             </div>
         )
     }
@@ -44,6 +48,7 @@ const App: React.FC = () => {
         choices={currentChoices}
         onChoiceSelected={makeChoice}
         isLoading={gameState === 'loading'}
+        isRetrying={isRetrying}
       />
     );
   };

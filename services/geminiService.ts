@@ -2,8 +2,6 @@ import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { createInitialCharacterPrompt, createSystemInstruction, GAME_STATE_SCHEMA, createUITranslationsPrompt } from '../constants';
 import type { Character, GeminiResponse, GameCustomizationOptions, UITranslations, Trait, Item } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-
 function parseJsonResponse<T,>(jsonString: string): T {
     try {
         const cleanedString = jsonString.replace(/^```json\n?/, '').replace(/\n?```$/, '');
@@ -32,6 +30,9 @@ export async function createCharacterAndGame(options: GameCustomizationOptions):
     firstResponse: GeminiResponse,
     chat: Chat,
 }> {
+    // Initialize the AI client here, at the time of the request, to avoid race conditions with environment variable injection.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+
     // 1. Generate Character Details and UI Translations in parallel
     const characterGenPrompt = createInitialCharacterPrompt(options);
     const translationsPrompt = createUITranslationsPrompt(options.language);

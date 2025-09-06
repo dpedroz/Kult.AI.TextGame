@@ -1,7 +1,31 @@
+
 import { useState, useCallback, useRef } from 'react';
 import type { Character, Choice, StorySegment, GameStage, GeminiResponse, GameCustomizationOptions } from '../types';
 import { createCharacterAndGame, continueGame } from '../services/geminiService';
 import type { Chat } from '@google/genai';
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  onRetry: (attempt: number, error: Error) => void,
+  maxRetries = 3,
+  initialDelay = 1000
+): Promise<T> {
+  let lastError: Error | undefined;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      if (i < maxRetries - 1) {
+        onRetry(i + 1, lastError);
+        // Exponential backoff
+        const delay = initialDelay * Math.pow(2, i);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
+}
 
 export const useGameLogic = () => {
   const [gameState, setGameState] = useState<GameStage>('start');
@@ -9,6 +33,7 @@ export const useGameLogic = () => {
   const [storyLog, setStoryLog] = useState<StorySegment[]>([]);
   const [currentChoices, setCurrentChoices] = useState<Choice[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const chatRef = useRef<Chat | null>(null);
 
@@ -17,14 +42,24 @@ export const useGameLogic = () => {
     const errorMessage = err instanceof Error ? err.message : 'An unknown horror has occurred.';
     setError(`The connection to the Oracle has been severed. ${errorMessage}`);
     setGameState('error');
+    setIsRetrying(false);
   };
 
   const startGame = useCallback(async (options: GameCustomizationOptions) => {
     setGameState('loading');
     setError(null);
+    setIsRetrying(false);
+
+    const onRetry = (attempt: number, error: Error) => {
+      console.warn(`Attempt ${attempt} failed for startGame:`, error);
+      setIsRetrying(true);
+    };
 
     try {
-      const { newCharacter, firstResponse, chat } = await createCharacterAndGame(options);
+      const { newCharacter, firstResponse, chat } = await withRetry(
+        () => createCharacterAndGame(options),
+        onRetry
+      );
       chatRef.current = chat;
       
       setCharacter(newCharacter);
@@ -32,6 +67,7 @@ export const useGameLogic = () => {
       setStoryLog([{ id: Date.now(), text: firstResponse.storyText }]);
       setCurrentChoices(firstResponse.choices);
       setGameState('playing');
+      setIsRetrying(false);
     } catch (err) {
       handleApiError(err, 'game initialization');
     }
@@ -46,9 +82,20 @@ export const useGameLogic = () => {
       ...prev, 
       { id: Date.now(), text: choiceText, isPlayerChoice: true }
     ]);
+    setIsRetrying(false);
+    
+    const onRetry = (attempt: number, error: Error) => {
+      console.warn(`Attempt ${attempt} failed for makeChoice:`, error);
+      setIsRetrying(true);
+    };
 
     try {
-      const response: GeminiResponse = await continueGame(chatRef.current, choiceText);
+      const response: GeminiResponse = await withRetry(
+          () => continueGame(chatRef.current!, choiceText),
+          onRetry
+      );
+
+      setIsRetrying(false);
       
       setCharacter(prev => {
         if (!prev) return null;
@@ -92,5 +139,5 @@ export const useGameLogic = () => {
     }
   }, [gameState, character]);
 
-  return { gameState, character, storyLog, currentChoices, error, startGame, makeChoice };
+  return { gameState, character, storyLog, currentChoices, error, startGame, makeChoice, isRetrying };
 };

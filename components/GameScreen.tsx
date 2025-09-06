@@ -11,9 +11,10 @@ interface GameScreenProps {
   choices: Choice[];
   onChoiceSelected: (choiceText: string) => void;
   isLoading: boolean;
+  isRetrying: boolean;
 }
 
-const GameScreen: React.FC<GameScreenProps> = ({ character, storyLog, choices, onChoiceSelected, isLoading }) => {
+const GameScreen: React.FC<GameScreenProps> = ({ character, storyLog, choices, onChoiceSelected, isLoading, isRetrying }) => {
   const storyEndRef = useRef<HTMLDivElement>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [playingSegmentId, setPlayingSegmentId] = useState<number | null>(null);
@@ -139,7 +140,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ character, storyLog, choices, o
           {isLoading ? (
             <div className="flex items-center justify-center">
               <LoadingIndicator />
-              <p className="ml-4 text-gray-400 animate-pulse">The Oracle is contemplating...</p>
+              <p className="ml-4 text-gray-400 animate-pulse">
+                {isRetrying
+                    ? 'The connection is unstable... Retrying.'
+                    : 'The Oracle is contemplating...'}
+              </p>
             </div>
           ) : (
             <>
