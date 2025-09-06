@@ -4,9 +4,10 @@ import { useGameLogic } from './hooks/useGameLogic';
 import StartScreen from './components/StartScreen';
 import GameScreen from './components/GameScreen';
 import LoadingIndicator from './components/LoadingIndicator';
+import type { GameStage } from './types';
 
 const App: React.FC = () => {
-  const { gameState, character, storyLog, currentChoices, error, startGame, makeChoice, isRetrying } = useGameLogic();
+  const { gameState, character, storyLog, currentChoices, error, startGame, makeChoice, isRetrying, finalImage } = useGameLogic();
 
   const renderContent = () => {
     if (gameState === 'error') {
@@ -49,6 +50,8 @@ const App: React.FC = () => {
         onChoiceSelected={makeChoice}
         isLoading={gameState === 'loading'}
         isRetrying={isRetrying}
+        gameState={gameState as GameStage}
+        finalImage={finalImage}
       />
     );
   };

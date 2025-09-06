@@ -1,4 +1,5 @@
-import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
+
+import { GoogleGenAI, Chat, GenerateContentResponse, Modality } from "@google/genai";
 import { createInitialCharacterPrompt, createSystemInstruction, GAME_STATE_SCHEMA, createUITranslationsPrompt, createItemTranslationPrompt } from '../constants';
 import type { Character, GeminiResponse, GameCustomizationOptions, UITranslations, Trait, Item } from '../types';
 
@@ -84,18 +85,7 @@ export async function createCharacterAndGame(options: GameCustomizationOptions):
 
 
     // 3. Generate Character Portrait
-    const imageResponse = await ai.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: `Photorealistic, gritty, noir-style portrait. ${characterData.portraitPrompt}`,
-        config: {
-            numberOfImages: 1,
-            outputMimeType: 'image/jpeg',
-            aspectRatio: '1:1',
-        },
-    });
-
-    const base64ImageBytes = imageResponse.generatedImages[0].image.imageBytes;
-    const imageUrl = `data:image/jpeg;base64,${base64ImageBytes}`;
+    const imageUrl = await generateImageFromPrompt(characterData.portraitPrompt);
     
     const newCharacter: Character = {
         ...characterData,
@@ -126,6 +116,59 @@ export async function createCharacterAndGame(options: GameCustomizationOptions):
     const firstResponse = parseJsonResponse<GeminiResponse>(firstResponseRaw.text);
     
     return { newCharacter, firstResponse, chat };
+}
+
+export async function generateImageFromPrompt(prompt: string): Promise<string> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+    const imageResponse = await ai.models.generateImages({
+        model: 'imagen-4.0-generate-001',
+        prompt: prompt,
+        config: {
+            numberOfImages: 1,
+            outputMimeType: 'image/jpeg',
+            aspectRatio: '1:1',
+        },
+    });
+
+    if (!imageResponse.generatedImages || imageResponse.generatedImages.length === 0) {
+        throw new Error("Image generation failed, no images returned.");
+    }
+
+    const base64ImageBytes = imageResponse.generatedImages[0].image.imageBytes;
+    return `data:image/jpeg;base64,${base64ImageBytes}`;
+}
+
+export async function editImageFromPrompt(base64ImageData: string, prompt: string): Promise<string> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image-preview',
+        contents: {
+            parts: [
+                {
+                    inlineData: {
+                        data: base64ImageData,
+                        mimeType: 'image/jpeg', // The original is a JPEG
+                    },
+                },
+                {
+                    text: prompt,
+                },
+            ],
+        },
+        config: {
+            responseModalities: [Modality.IMAGE, Modality.TEXT],
+        },
+    });
+
+    for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+            const base64ImageBytes: string = part.inlineData.data;
+            // Edited images are often returned as PNGs
+            return `data:image/png;base64,${base64ImageBytes}`;
+        }
+    }
+
+    throw new Error("Image editing failed, no image data returned in the response.");
 }
 
 

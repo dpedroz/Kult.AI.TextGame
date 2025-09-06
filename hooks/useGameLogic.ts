@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import type { Character, Choice, StorySegment, GameStage, GeminiResponse, GameCustomizationOptions } from '../types';
-import { createCharacterAndGame, continueGame } from '../services/geminiService';
+import { createCharacterAndGame, continueGame, generateImageFromPrompt, editImageFromPrompt } from '../services/geminiService';
 import type { Chat } from '@google/genai';
 
 async function withRetry<T>(
@@ -34,6 +34,7 @@ export const useGameLogic = () => {
   const [currentChoices, setCurrentChoices] = useState<Choice[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [finalImage, setFinalImage] = useState<string | null>(null);
 
   const chatRef = useRef<Chat | null>(null);
 
@@ -74,7 +75,7 @@ export const useGameLogic = () => {
   }, []);
 
   const makeChoice = useCallback(async (choiceText: string) => {
-    if (!chatRef.current || gameState !== 'playing') return;
+    if (!chatRef.current || !character || gameState !== 'playing') return;
 
     setGameState('loading');
     setCurrentChoices([]);
@@ -97,25 +98,13 @@ export const useGameLogic = () => {
 
       setIsRetrying(false);
       
+      let finalStability = character.stability;
+      if (response.characterUpdate.stabilityChange) {
+          finalStability = Math.max(0, Math.min(character.maxStability, character.stability + response.characterUpdate.stabilityChange));
+      }
       setCharacter(prev => {
         if (!prev) return null;
-        const newChar = { ...prev };
-        
-        // Update stability
-        if (response.characterUpdate.stabilityChange) {
-            newChar.stability = Math.max(0, Math.min(newChar.maxStability, newChar.stability + response.characterUpdate.stabilityChange));
-        }
-        // Add new item - this part of the logic might need to be updated since inventory is an object array now.
-        // For simplicity, this demo won't handle adding/removing items from the new structure, but a real implementation would need to.
-        // if (response.characterUpdate.newItem && !newChar.inventory.find(i => i.text === response.characterUpdate.newItem)) {
-        //     newChar.inventory = [...newChar.inventory, { text: response.characterUpdate.newItem, icon: 'item' }];
-        // }
-        // // Remove item
-        // if (response.characterUpdate.removeItem) {
-        //     newChar.inventory = newChar.inventory.filter(item => item.text !== response.characterUpdate.removeItem);
-        // }
-
-        return newChar;
+        return { ...prev, stability: finalStability };
       });
 
       const nextStorySegment: StorySegment = { id: Date.now() + 1, text: response.storyText };
@@ -124,11 +113,25 @@ export const useGameLogic = () => {
       }
       setStoryLog(prev => [...prev, nextStorySegment]);
 
-      if (response.isGameOver || (character && character.stability <= 0)) {
+      if (response.isGameOver || finalStability <= 0) {
         setGameState('gameover');
         setCurrentChoices([]);
         const gameOverText = response.isGameOver ? response.gameOverText : "Your mind shatters. The Illusion collapses around you into a vortex of screaming madness. You are lost.";
-        setStoryLog(prev => [...prev, { id: Date.now() + 2, text: `\n--- ${gameOverText} ---`}])
+        setStoryLog(prev => [...prev, { id: Date.now() + 2, text: `\n--- ${gameOverText} ---`}]);
+        
+        if (response.finalPortraitPrompt) {
+            try {
+                // Keep the original portrait, but generate a new, final one based on it.
+                const originalPortraitBase64 = character.portrait.split(',')[1];
+                if (originalPortraitBase64) {
+                    const editedImageUrl = await editImageFromPrompt(originalPortraitBase64, response.finalPortraitPrompt);
+                    setFinalImage(editedImageUrl);
+                }
+            } catch (err) {
+                console.error("Failed to generate final portrait:", err);
+                // Silently fail, don't break the app. No final image will be shown.
+            }
+        }
       } else {
         setCurrentChoices(response.choices);
         setGameState('playing');
@@ -139,5 +142,5 @@ export const useGameLogic = () => {
     }
   }, [gameState, character]);
 
-  return { gameState, character, storyLog, currentChoices, error, startGame, makeChoice, isRetrying };
+  return { gameState, character, storyLog, currentChoices, error, startGame, makeChoice, isRetrying, finalImage };
 };

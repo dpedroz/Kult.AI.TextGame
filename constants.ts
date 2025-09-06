@@ -1,3 +1,4 @@
+
 import { Type } from "@google/genai";
 // FIX: Import the 'GameCustomizationOptions' type to resolve the 'Cannot find name' error.
 import type { GameCustomizationOptions } from "./types";
@@ -36,7 +37,7 @@ Format the output as a single JSON object with the following keys:
 - advantages: Array<{ text: string, icon: string }>. The 'icon' should be a single, simple, lowercase keyword (e.g., 'book', 'strength', 'intuition', 'fear', 'key').
 - disadvantages: Array<{ text: string, icon: string }>. The 'icon' should be a single, simple, lowercase keyword.
 - inventory: Array<{ text: string, icon: string }>. The 'icon' should be a single, simple, lowercase keyword.
-- portraitPrompt: A detailed, atmospheric, and artistic prompt for an image generator to create a photorealistic, gritty, noir-style portrait.
+- portraitPrompt: A detailed, atmospheric, and artistic prompt for an image generator to create a photorealistic, gritty, noir-style portrait of the character. The prompt must be safe for work and avoid any potentially sensitive or violent terms.
 - location: The final string for the game's location.
 - year: The final string for the game's year.
 `;
@@ -78,11 +79,11 @@ export const GAME_STATE_SCHEMA = {
   properties: {
     storyText: {
       type: Type.STRING,
-      description: "A detailed, atmospheric paragraph describing the current scene, events, and sensations. This should be evocative and unsettling.",
+      description: "A detailed, atmospheric narrative from a second-person perspective ('You see...', 'You feel...'). Describe the current scene, events, and sensations. Separate distinct ideas or moments into paragraphs using newline characters ('\\n'). This should be evocative and unsettling.",
     },
     choices: {
       type: Type.ARRAY,
-      description: "An array of 2 to 4 distinct choices for the player. Each choice should be a clear action.",
+      description: "An array of 2 to 4 distinct choices for the player. Each choice MUST be phrased from a first-person perspective, as if the character is thinking or stating their intent. For example: 'I will inspect the strange symbol on the wall.' or 'I need to get out of here now.'",
       items: {
         type: Type.OBJECT,
         properties: {
@@ -123,6 +124,10 @@ export const GAME_STATE_SCHEMA = {
       type: Type.STRING,
       description: "If isGameOver is true, this text describes the final outcome. Null otherwise.",
     },
+    finalPortraitPrompt: {
+        type: Type.STRING,
+        description: "If isGameOver is true, provide a detailed, atmospheric, and artistic prompt for an image generator to modify the existing portrait to reflect the character's final state and surroundings. The prompt must be safe for work and avoid potentially sensitive or violent terms. E.g., 'Make the man's eyes look hollow and add rain dripping down his face.' Null otherwise.",
+    },
   },
-  required: ["storyText", "choices", "characterUpdate", "isGameOver", "gameOverText"],
+  required: ["storyText", "choices", "characterUpdate", "isGameOver", "gameOverText", "finalPortraitPrompt"],
 };

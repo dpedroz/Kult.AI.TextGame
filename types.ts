@@ -1,3 +1,4 @@
+
 export interface Trait {
   text: string;
   icon: string; // Keyword for an icon
@@ -62,6 +63,7 @@ export interface GeminiResponse {
   characterUpdate: CharacterUpdate;
   isGameOver: boolean;
   gameOverText: string | null;
+  finalPortraitPrompt?: string | null;
 }
 
 export type GameStage = 'start' | 'loading' | 'playing' | 'gameover' | 'error';

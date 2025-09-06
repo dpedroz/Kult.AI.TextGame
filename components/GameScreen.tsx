@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import type { Character, Choice, StorySegment } from '../types';
+import type { Character, Choice, StorySegment, GameStage } from '../types';
 import CharacterSheet from './CharacterSheet';
 import LoadingIndicator from './LoadingIndicator';
 import { SpeakerWaveIcon, StopCircleIcon } from './Icon';
@@ -12,9 +12,11 @@ interface GameScreenProps {
   onChoiceSelected: (choiceText: string) => void;
   isLoading: boolean;
   isRetrying: boolean;
+  gameState: GameStage;
+  finalImage: string | null;
 }
 
-const GameScreen: React.FC<GameScreenProps> = ({ character, storyLog, choices, onChoiceSelected, isLoading, isRetrying }) => {
+const GameScreen: React.FC<GameScreenProps> = ({ character, storyLog, choices, onChoiceSelected, isLoading, isRetrying, gameState, finalImage }) => {
   const storyEndRef = useRef<HTMLDivElement>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [playingSegmentId, setPlayingSegmentId] = useState<number | null>(null);
@@ -35,7 +37,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ character, storyLog, choices, o
 
   useEffect(() => {
     storyEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [storyLog]);
+  }, [storyLog, finalImage]);
 
   const handlePlayToggle = useCallback((segment: StorySegment) => {
     if (playingSegmentId === segment.id) {
@@ -117,7 +119,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ character, storyLog, choices, o
                  </p>
               ) : (
                 <div className="flex items-start gap-2 group">
-                    <p className="flex-grow font-serif text-lg leading-relaxed whitespace-pre-wrap">{segment.text}</p>
+                    <p className="flex-grow font-serif text-2xl leading-relaxed whitespace-pre-wrap">{segment.text}</p>
                     <button 
                         onClick={() => handlePlayToggle(segment)}
                         className="flex-shrink-0 mt-1 p-1 rounded-full text-gray-500 hover:text-red-400 hover:bg-gray-800/50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
@@ -133,6 +135,16 @@ const GameScreen: React.FC<GameScreenProps> = ({ character, storyLog, choices, o
               )}
             </div>
           ))}
+            {gameState === 'gameover' && finalImage && (
+                <div className="mt-8 mb-4 flex flex-col items-center animate-pulse-slow">
+                    <img 
+                        src={finalImage} 
+                        alt="Your final form" 
+                        className="w-full max-w-md rounded-lg border-2 border-red-900/50 shadow-lg shadow-red-900/20" 
+                    />
+                    <p className="text-sm italic text-gray-500 mt-2">Your fate is sealed.</p>
+                </div>
+            )}
           <div ref={storyEndRef} />
         </div>
 
@@ -147,37 +159,39 @@ const GameScreen: React.FC<GameScreenProps> = ({ character, storyLog, choices, o
               </p>
             </div>
           ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {choices.map((choice) => (
-                  <button
-                    key={choice.id}
-                    onClick={() => onChoiceSelected(choice.text)}
-                    className="w-full text-left p-4 bg-gray-800 hover:bg-red-900/50 border border-gray-700 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                    disabled={isLoading}
-                  >
-                    <span className="font-semibold">{choice.text}</span>
-                  </button>
-                ))}
-              </div>
-              <form onSubmit={handleCustomChoiceSubmit} className="mt-4 flex gap-2">
-                  <input
-                      type="text"
-                      value={customChoice}
-                      onChange={(e) => setCustomChoice(e.target.value)}
-                      placeholder={character.uiTranslations.typeYourAction || 'Type your action...'}
-                      className="flex-grow px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 text-gray-300 disabled:opacity-50"
+            gameState === 'playing' && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {choices.map((choice) => (
+                    <button
+                      key={choice.id}
+                      onClick={() => onChoiceSelected(choice.text)}
+                      className="w-full text-left p-4 bg-gray-800 hover:bg-red-900/50 border border-gray-700 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                       disabled={isLoading}
-                  />
-                  <button 
-                      type="submit"
-                      className="px-6 py-2 bg-gray-700 hover:bg-red-800 text-white font-bold rounded-lg border border-gray-600 hover:border-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={isLoading || !customChoice.trim()}
-                  >
-                      Submit
-                  </button>
-              </form>
-            </>
+                    >
+                      <span className="font-semibold">{choice.text}</span>
+                    </button>
+                  ))}
+                </div>
+                <form onSubmit={handleCustomChoiceSubmit} className="mt-4 flex gap-2">
+                    <input
+                        type="text"
+                        value={customChoice}
+                        onChange={(e) => setCustomChoice(e.target.value)}
+                        placeholder={character.uiTranslations.typeYourAction || 'Type your action...'}
+                        className="flex-grow px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 text-gray-300 disabled:opacity-50"
+                        disabled={isLoading}
+                    />
+                    <button 
+                        type="submit"
+                        className="px-6 py-2 bg-gray-700 hover:bg-red-800 text-white font-bold rounded-lg border border-gray-600 hover:border-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isLoading || !customChoice.trim()}
+                    >
+                        Submit
+                    </button>
+                </form>
+              </>
+            )
           )}
         </div>
       </div>
