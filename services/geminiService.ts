@@ -1,5 +1,5 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-import { createInitialCharacterPrompt, createSystemInstruction, GAME_STATE_SCHEMA, createUITranslationsPrompt } from '../constants';
+import { createInitialCharacterPrompt, createSystemInstruction, GAME_STATE_SCHEMA, createUITranslationsPrompt, createItemTranslationPrompt } from '../constants';
 import type { Character, GeminiResponse, GameCustomizationOptions, UITranslations, Trait, Item } from '../types';
 
 function parseJsonResponse<T,>(jsonString: string): T {
@@ -33,7 +33,7 @@ export async function createCharacterAndGame(options: GameCustomizationOptions):
     // Initialize the AI client here, at the time of the request, to avoid race conditions with environment variable injection.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
-    // 1. Generate Character Details and UI Translations in parallel
+    // 1. Generate Character Details (in English) and UI Translations in parallel
     const characterGenPrompt = createInitialCharacterPrompt(options);
     const translationsPrompt = createUITranslationsPrompt(options.language);
 
@@ -53,8 +53,37 @@ export async function createCharacterAndGame(options: GameCustomizationOptions):
     const characterData = parseJsonResponse<CharacterGenData>(characterGenResponse.text);
     const uiTranslations = parseJsonResponse<UITranslations>(translationsResponse.text);
 
+    // 2. If a non-English language is selected, translate the generated items.
+    if (options.language.toLowerCase().trim() !== 'english') {
+        const itemsToTranslate = [
+            ...characterData.advantages.map(a => a.text),
+            ...characterData.disadvantages.map(d => d.text),
+            ...characterData.inventory.map(i => i.text)
+        ];
 
-    // 2. Generate Character Portrait
+        if (itemsToTranslate.length > 0) {
+            const itemTranslationPrompt = createItemTranslationPrompt(itemsToTranslate, options.language);
+            const itemTranslationResponse = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: itemTranslationPrompt,
+                config: { responseMimeType: 'application/json' },
+            });
+
+            const translatedData = parseJsonResponse<{ translations: string[] }>(itemTranslationResponse.text);
+
+            if (translatedData.translations && translatedData.translations.length === itemsToTranslate.length) {
+                let currentIdx = 0;
+                characterData.advantages.forEach(a => { a.text = translatedData.translations[currentIdx++]; });
+                characterData.disadvantages.forEach(d => { d.text = translatedData.translations[currentIdx++]; });
+                characterData.inventory.forEach(i => { i.text = translatedData.translations[currentIdx++]; });
+            } else {
+                console.warn("Translation mapping failed due to mismatched lengths. Falling back to English items.");
+            }
+        }
+    }
+
+
+    // 3. Generate Character Portrait
     const imageResponse = await ai.models.generateImages({
         model: 'imagen-4.0-generate-001',
         prompt: `Photorealistic, gritty, noir-style portrait. ${characterData.portraitPrompt}`,
@@ -80,7 +109,7 @@ export async function createCharacterAndGame(options: GameCustomizationOptions):
         }
     };
     
-    // 3. Initialize Chat and get the first story segment
+    // 4. Initialize Chat and get the first story segment
     const systemInstruction = createSystemInstruction(options.language);
     const chat = ai.chats.create({
         model: 'gemini-2.5-flash',

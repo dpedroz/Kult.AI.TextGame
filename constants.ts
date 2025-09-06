@@ -21,7 +21,7 @@ The character should be a "Sleeper," unaware of the true nature of reality but f
 
 Crucially, the character's advantages, disadvantages, and starting inventory MUST be thematically, culturally, and technologically appropriate for the specified time period and location. For example, a character in 1985 Warsaw would have very different items and concerns than one in 2024 Tokyo.
 
-IMPORTANT: The 'text' fields for advantages, disadvantages, and inventory MUST be in the target language: ${options.language}.
+IMPORTANT: The 'text' fields for advantages, disadvantages, and inventory MUST be generated in creative, descriptive ENGLISH. This is for a later translation step.
 
 Provide the character details, a detailed portrait prompt, and the final game setting (location and year). If the location or year were specified, use those values. If they were "Random", provide the specific values you chose.
 
@@ -37,6 +37,15 @@ Format the output as a single JSON object with the following keys:
 - year: The final string for the game's year.
 `;
 };
+
+export const createItemTranslationPrompt = (items: string[], language: string) => `
+Translate the following list of game items and character traits into the ${language} language.
+Maintain a dark, literary, and atmospheric tone appropriate for the KULT: Divinity Lost universe.
+Return the response as a single JSON object with a key "translations" which is an array of the translated strings, in the exact same order as the input.
+
+Input Items:
+${JSON.stringify(items)}
+`;
 
 export const createUITranslationsPrompt = (language: string) => `
 Generate a JSON object with translations for the following UI labels into the ${language} language.
