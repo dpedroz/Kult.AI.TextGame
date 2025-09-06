@@ -8,7 +8,9 @@ export const createInitialCharacterPrompt = (options: GameCustomizationOptions) 
   const genderInstruction = options.gender.toLowerCase() !== 'random' ? `The character's gender is ${options.gender}.` : `The character's gender can be anything.`;
   const ageInstruction = options.age.toLowerCase() !== 'random' ? `The character is around ${options.age} years old.` : `The character's age is not specified, choose a fitting one.`;
   const locationInstruction = options.location.toLowerCase() !== 'random' ? `The story is set in or around: ${options.location}.` : `Choose a fitting, atmospheric location for the story.`;
-  const yearInstruction = options.year.toLowerCase() !== 'random' ? `The story is set in the year: ${options.year}.` : `Choose a fitting, atmospheric year for the story.`;
+  const yearInstruction = options.year.toLowerCase() !== 'random' 
+    ? `The story is set in the year: ${options.year}.` 
+    : `Choose a fitting, atmospheric year for the story. The year should be between 1970 and the present day. While any year in this range is possible, lean towards the late 1990s or early 2000s (around 2005 is a good focal point) to create a sense of recent history without ubiquitous modern technology like smartphones being a default assumption.`;
 
   return `
 Generate a compelling player character for a text adventure game set in the KULT: Divinity Lost universe.
@@ -16,6 +18,8 @@ ${genderInstruction}
 ${ageInstruction}
 ${locationInstruction}
 ${yearInstruction}
+
+The character's background and nationality are independent of the game's language (${options.language}). For instance, the game could be in Polish but the character an American tourist. However, there is a roughly 20% chance that the character is a native of a country where the selected language is spoken. Default to diverse, international characters unless you roll that 20% chance.
 
 The character should be a "Sleeper," unaware of the true nature of reality but feeling a deep sense of wrongness in their life.
 

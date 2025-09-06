@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { GameCustomizationOptions } from '../types';
+import { STARTING_LOCATIONS } from '../locations';
 
 interface StartScreenProps {
   onStart: (options: GameCustomizationOptions) => void;
@@ -19,26 +20,34 @@ const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) 
 
 
 const StartScreen: React.FC<StartScreenProps> = ({ onStart }) => {
-  const [options, setOptions] = useState<GameCustomizationOptions>({
-    language: 'English',
-    location: 'Random',
-    year: '',
-    gender: 'Random',
-    age: '',
-  });
+  const [language, setLanguage] = useState('English');
+  const [customLanguage, setCustomLanguage] = useState('');
+  const [location, setLocation] = useState('Random');
+  const [year, setYear] = useState('');
+  const [gender, setGender] = useState('Random');
+  const [age, setAge] = useState('');
+  const [displayedLocations, setDisplayedLocations] = useState<string[]>([]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setOptions(prev => ({...prev, [name]: value}));
-  };
+  useEffect(() => {
+    // Shuffle the array and pick 4 to display.
+    const shuffled = [...STARTING_LOCATIONS].sort(() => 0.5 - Math.random());
+    setDisplayedLocations(shuffled.slice(0, 4));
+  }, []); // Empty dependency array means this runs only on mount
+
 
   const handleStart = () => {
+    const finalLanguage = language === 'Other' ? customLanguage.trim() : language;
     onStart({
-      ...options,
-      year: options.year.trim() === '' ? 'Random' : options.year,
-      age: options.age.trim() === '' ? 'Random' : options.age,
+      language: finalLanguage || 'English', // Default to English if other is empty
+      location,
+      year: year.trim() === '' ? 'Random' : year,
+      gender,
+      age: age.trim() === '' ? 'Random' : age,
     });
   };
+
+  // Determine grid columns based on whether the custom language input is visible
+  const gridCols = language === 'Other' ? 'sm:grid-cols-2' : 'sm:grid-cols-2';
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-center p-4 sm:p-8 bg-gray-900">
@@ -55,44 +64,54 @@ const StartScreen: React.FC<StartScreenProps> = ({ onStart }) => {
         </p>
         
         <div className="bg-black/20 border border-gray-800 rounded-lg p-6 space-y-4 text-left mb-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className={`grid grid-cols-1 ${gridCols} gap-4`}>
                  <div>
                     <Label htmlFor="language">Language</Label>
-                    <Input 
-                        id="language" 
-                        name="language" 
-                        type="text" 
-                        placeholder="e.g., English" 
-                        value={options.language} 
-                        onChange={handleInputChange} 
-                    />
+                    <Select id="language" name="language" value={language} onChange={e => setLanguage(e.target.value)}>
+                        <option>English</option>
+                        <option>Polish</option>
+                        <option>German</option>
+                        <option>French</option>
+                        <option>Spanish</option>
+                        <option>Italian</option>
+                        <option>Other</option>
+                    </Select>
                 </div>
+                {language === 'Other' && (
+                    <div>
+                        <Label htmlFor="customLanguage">Specify Language</Label>
+                        <Input
+                            id="customLanguage"
+                            name="customLanguage"
+                            type="text"
+                            placeholder="e.g., Japanese"
+                            value={customLanguage}
+                            onChange={e => setCustomLanguage(e.target.value)}
+                        />
+                    </div>
+                )}
                 <div>
                     <Label htmlFor="location">Starting Location</Label>
-                    <Select id="location" name="location" value={options.location} onChange={handleInputChange}>
+                    <Select id="location" name="location" value={location} onChange={e => setLocation(e.target.value)}>
                         <option>Random</option>
-                        <option>A rain-slicked Berlin alley</option>
-                        <option>A forgotten ward in a New Orleans hospital</option>
-                        <option>A secluded cabin in the Swedish wilderness</option>
-                        <option>A neon-drenched Tokyo backstreet</option>
+                        {displayedLocations.map(loc => <option key={loc}>{loc}</option>)}
                     </Select>
                 </div>
                 <div>
                     <Label htmlFor="gender">Gender</Label>
-                    <Select id="gender" name="gender" value={options.gender} onChange={handleInputChange}>
+                    <Select id="gender" name="gender" value={gender} onChange={e => setGender(e.target.value)}>
                         <option>Random</option>
                         <option>Male</option>
                         <option>Female</option>
-                        <option>Non-binary</option>
                     </Select>
                 </div>
                  <div>
                     <Label htmlFor="year">Year (Optional)</Label>
-                    <Input id="year" name="year" type="text" placeholder="e.g., 1991" value={options.year} onChange={handleInputChange} />
+                    <Input id="year" name="year" type="text" placeholder="e.g., 1991" value={year} onChange={e => setYear(e.target.value)} />
                 </div>
                 <div className="sm:col-span-2">
                     <Label htmlFor="age">Age (Optional)</Label>
-                    <Input id="age" name="age" type="text" placeholder="e.g., 35" value={options.age} onChange={handleInputChange} />
+                    <Input id="age" name="age" type="text" placeholder="e.g., 35" value={age} onChange={e => setAge(e.target.value)} />
                 </div>
             </div>
         </div>
