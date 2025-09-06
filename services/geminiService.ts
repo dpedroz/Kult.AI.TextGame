@@ -90,7 +90,7 @@ export async function createCharacterAndGame(options: GameCustomizationOptions):
         },
     });
 
-    const firstTurnPrompt = `Start the game in ${newCharacter.gameSettings.year} at ${newCharacter.gameSettings.location}. My character is ${newCharacter.name}, ${newCharacter.archetype}. Their background is: ${newCharacter.background}. Plunge them immediately into a mysterious and unsettling situation.`;
+    const firstTurnPrompt = `Start the game in ${newCharacter.gameSettings.year} at ${newCharacter.gameSettings.location}. My character is ${newCharacter.name}, ${newCharacter.archetype}. Their background is: ${newCharacter.background}. Plunge them immediately into a mysterious and unsettling situation that is directly related to their background or one of their advantages/disadvantages. Avoid generic starting locations like an office or library unless it is explicitly part of the character's background.`;
     const firstResponseRaw: GenerateContentResponse = await chat.sendMessage({ message: firstTurnPrompt });
 
     const firstResponse = parseJsonResponse<GeminiResponse>(firstResponseRaw.text);

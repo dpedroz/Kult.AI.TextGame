@@ -37,17 +37,18 @@ export const useGameLogic = () => {
     }
   }, []);
 
-  const makeChoice = useCallback(async (choice: Choice) => {
+  const makeChoice = useCallback(async (choiceText: string) => {
     if (!chatRef.current || gameState !== 'playing') return;
 
     setGameState('loading');
+    setCurrentChoices([]);
     setStoryLog(prev => [
       ...prev, 
-      { id: Date.now(), text: choice.text, isPlayerChoice: true }
+      { id: Date.now(), text: choiceText, isPlayerChoice: true }
     ]);
 
     try {
-      const response: GeminiResponse = await continueGame(chatRef.current, choice.text);
+      const response: GeminiResponse = await continueGame(chatRef.current, choiceText);
       
       setCharacter(prev => {
         if (!prev) return null;

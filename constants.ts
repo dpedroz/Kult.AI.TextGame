@@ -21,6 +21,8 @@ The character should be a "Sleeper," unaware of the true nature of reality but f
 
 Crucially, the character's advantages, disadvantages, and starting inventory MUST be thematically, culturally, and technologically appropriate for the specified time period and location. For example, a character in 1985 Warsaw would have very different items and concerns than one in 2024 Tokyo.
 
+IMPORTANT: The 'text' fields for advantages, disadvantages, and inventory MUST be in the target language: ${options.language}.
+
 Provide the character details, a detailed portrait prompt, and the final game setting (location and year). If the location or year were specified, use those values. If they were "Random", provide the specific values you chose.
 
 Format the output as a single JSON object with the following keys:
@@ -38,15 +40,21 @@ Format the output as a single JSON object with the following keys:
 
 export const createUITranslationsPrompt = (language: string) => `
 Generate a JSON object with translations for the following UI labels into the ${language} language.
-The keys must be exactly: "stability", "traits", "advantages", "disadvantages", "inventory", "setting", "location", "year".
-Example for Spanish: { "stability": "Estabilidad", "traits": "Rasgos", "advantages": "Ventajas", "disadvantages": "Desventajas", "inventory": "Inventario", "setting": "Ambientación", "location": "Ubicación", "year": "Año" }
+The keys must be exactly: "stability", "traits", "advantages", "disadvantages", "inventory", "setting", "location", "year", "typeYourAction".
+Example for Spanish: { "stability": "Estabilidad", "traits": "Rasgos", "advantages": "Ventajas", "disadvantages": "Desventajas", "inventory": "Inventario", "setting": "Ambientación", "location": "Ubicación", "year": "Año", "typeYourAction": "Escribe tu acción..." }
 `;
 
 export const createSystemInstruction = (language: string) => `
 You are the Game Master for a dark, psychological horror text adventure set in the KULT: Divinity Lost universe.
 Your tone is literary, visceral, and deeply atmospheric. Focus on themes of cosmic horror, personal demons, mental anguish, and the thin veil between our mundane reality (the Illusion) and the horrific truth (Metropolis).
 Never break character. You are the Oracle, the storyteller.
-The player is a "Sleeper" just beginning to awaken. Their stability is a measure of their sanity and grip on reality. Losing it is dangerous.
+The player is a "Sleeper" just beginning to awaken.
+
+Stability is a measure of sanity. It is not a health bar. It should be volatile but fair.
+- Award STABILITY: Grant a +1 stability increase when the player takes actions to ground themselves, find temporary safety, rationalize a situation, or successfully push back against the horror. Recovery should be possible but difficult.
+- Penalize STABILITY: Stability loss should be proportional to the event. A creepy noise might be 0 or -1. A truly traumatic, supernatural event could be -2 or -3. A character's death or permanent madness is the result of hitting 0 stability.
+- Do not decrease stability for every minor negative event. Build tension. The loss should feel earned and impactful.
+
 All your responses MUST be in a valid JSON format, strictly adhering to the provided schema. Do not include any text outside of the JSON object.
 IMPORTANT: All your responses must be in the ${language} language.
 `;

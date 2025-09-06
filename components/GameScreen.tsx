@@ -9,7 +9,7 @@ interface GameScreenProps {
   character: Character | null;
   storyLog: StorySegment[];
   choices: Choice[];
-  onChoiceSelected: (choice: Choice) => void;
+  onChoiceSelected: (choiceText: string) => void;
   isLoading: boolean;
 }
 
@@ -17,6 +17,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ character, storyLog, choices, o
   const storyEndRef = useRef<HTMLDivElement>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [playingSegmentId, setPlayingSegmentId] = useState<number | null>(null);
+  const [customChoice, setCustomChoice] = useState('');
 
   // Populate voices when they are loaded by the browser
   useEffect(() => {
@@ -86,6 +87,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ character, storyLog, choices, o
       window.speechSynthesis.speak(utterance);
     }
   }, [playingSegmentId, voices]);
+  
+  const handleCustomChoiceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (customChoice.trim() && !isLoading) {
+        onChoiceSelected(customChoice.trim());
+        setCustomChoice('');
+    }
+  };
 
   if (!character) {
     return null; // or a loading state
@@ -133,17 +142,37 @@ const GameScreen: React.FC<GameScreenProps> = ({ character, storyLog, choices, o
               <p className="ml-4 text-gray-400 animate-pulse">The Oracle is contemplating...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {choices.map((choice) => (
-                <button
-                  key={choice.id}
-                  onClick={() => onChoiceSelected(choice)}
-                  className="w-full text-left p-4 bg-gray-800 hover:bg-red-900/50 border border-gray-700 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
-                  <span className="font-semibold">{choice.text}</span>
-                </button>
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {choices.map((choice) => (
+                  <button
+                    key={choice.id}
+                    onClick={() => onChoiceSelected(choice.text)}
+                    className="w-full text-left p-4 bg-gray-800 hover:bg-red-900/50 border border-gray-700 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    disabled={isLoading}
+                  >
+                    <span className="font-semibold">{choice.text}</span>
+                  </button>
+                ))}
+              </div>
+              <form onSubmit={handleCustomChoiceSubmit} className="mt-4 flex gap-2">
+                  <input
+                      type="text"
+                      value={customChoice}
+                      onChange={(e) => setCustomChoice(e.target.value)}
+                      placeholder={character.uiTranslations.typeYourAction || 'Type your action...'}
+                      className="flex-grow px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 text-gray-300 disabled:opacity-50"
+                      disabled={isLoading}
+                  />
+                  <button 
+                      type="submit"
+                      className="px-6 py-2 bg-gray-700 hover:bg-red-800 text-white font-bold rounded-lg border border-gray-600 hover:border-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isLoading || !customChoice.trim()}
+                  >
+                      Submit
+                  </button>
+              </form>
+            </>
           )}
         </div>
       </div>

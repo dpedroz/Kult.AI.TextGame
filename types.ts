@@ -17,6 +17,7 @@ export interface UITranslations {
   setting: string;
   location: string;
   year: string;
+  typeYourAction: string;
 }
 
 export interface Character {
